@@ -1,9 +1,28 @@
+from threading import Thread
+from msvcrt import getch
+from os import system
+import cmtools
+import time
+import shutil
 import sys
+
 class Window(object):
     def __init__(self, width, height):
         self.width = width-1
         self.height = height
         self.modified = True
+        self.key = 0
+        self.exit = False
+
+        #Prepare terminal by resizing and clearing.
+        system('mode con:cols=%d lines=%d'%(width,height))
+        system('cls')
+
+        #Start new thread that listens for keypresses.
+        keyRead = Thread(target = self.getKeypress)
+        keyRead.daemon = True
+        keyRead.start()
+
         #Create a 2D array scaled to terminal's lines and columns.
         self.rect = [[' ' for i in range(self.width)]
                      for i in range(self.height)]
@@ -50,4 +69,24 @@ class Window(object):
             for i in range(len(string)):
                 self.rect_buffer[int((y)%self.height)][int(x+i)%self.width] = string[i]
 
-            
+    def getKeypress(self):
+        t = Timer()
+        while not self.exit:
+            if t.time_elapsed(5):
+                self.key = ord(getch())
+            if self.key == 3:
+                self.exit = True
+
+
+class Timer(object):
+    def __init__(self):
+        self.split = self.current_time()
+
+    def time_elapsed(self, wait_time):
+        """Returns True after 'wait_time' ms has elapsed since last True."""
+        if(self.current_time()-self.split>wait_time):
+            self.split=self.current_time()
+            return True
+
+    def current_time(self):
+        return int(round(time.process_time()*1000))
