@@ -2,21 +2,25 @@ from threading import Thread
 from msvcrt import getch
 from os import system
 import cmtools
+import colorama
 import time
 import shutil
 import sys
 
 class Window(object):
     def __init__(self, width, height):
-        self.width = width-1
-        self.height = height
-        self.modified = True
+        self.width = width+1
+        self.height = height+1
+
         self.key = 0
         self.exit = False
 
+        self.t = Timer()
+
         #Prepare terminal by resizing and clearing.
-        system('mode con:cols=%d lines=%d'%(width,height))
+        system('mode con:cols=%d lines=%d'%(self.width+1,self.height))
         system('cls')
+        colorama.init()
 
         #Start new thread that listens for keypresses.
         keyRead = Thread(target = self.getKeypress)
@@ -26,27 +30,20 @@ class Window(object):
         #Create a 2D array scaled to terminal's lines and columns.
         self.rect = [[' ' for i in range(self.width)]
                      for i in range(self.height)]
-        self.rect_buffer = []
+        self.clear()
 
     def update(self):
-        """Print self.rect if a change has been made"""
-        #check for any difference between buffer and live rects
-        for y in range(len(self.rect)):
-            for x in range(y):
-                if self.rect[x] != self.rect_buffer[x]:
-                    self.modified = True
-                    break
+        """print to screen"""
+        pos = lambda y, x: '\x1b[%d;%dH' % (y+1, x+1)
 
-        if self.modified:
-            self.rect = self.rect_buffer
-            block = ""
-            for line in self.rect:
-                block += '\n'
-                for char in line:
-                    block += char
-            sys.stdout.write(block)
-            self.modified = False
-        #sys.stdout.flush()
+        for line in range(len(self.rect)):
+            for char in range(len(self.rect[line])):
+                if self.rect[line][char] != self.rect_buffer[line][char]:
+                    print(pos(line, char), end='')
+                    print(self.rect_buffer[line][char],end='')
+        print(pos(self.height-1,self.width-1),end='')
+
+        self.rect=self.rect_buffer
 
     def border(self):
         """outline the rect with an x every other cell"""
@@ -59,20 +56,21 @@ class Window(object):
 
     def clear(self):
         """empty the buffer"""
-        self.rect_buffer = [[' ' for i in range(self.width)]
+        self.rect_buffer = [['' for i in range(self.width)]
                      for i in range(self.height)]
 
-    def draw(self, *args, x,y):
-        """Modifies given rect according to args given"""
+    def write(self, *args, x,y):
+        """write changes to self.rect"""
         if isinstance(args[0], str):
             string = args[0]
             for i in range(len(string)):
-                self.rect_buffer[int((y)%self.height)][int(x+i)%self.width] = string[i]
+                self.rect_buffer[y%self.height][int(x+i)%self.width] = string[i]
 
     def getKeypress(self):
+        """Assign self.key to last keypress"""
         t = Timer()
         while not self.exit:
-            if t.time_elapsed(5):
+            if t.time_has_elapsed(5):
                 self.key = ord(getch())
             if self.key == 3:
                 self.exit = True
@@ -82,7 +80,7 @@ class Timer(object):
     def __init__(self):
         self.split = self.current_time()
 
-    def time_elapsed(self, wait_time):
+    def time_has_elapsed(self, wait_time):
         """Returns True after 'wait_time' ms has elapsed since last True."""
         if(self.current_time()-self.split>wait_time):
             self.split=self.current_time()
