@@ -1,4 +1,9 @@
 #python 3
+
+#Path hack.
+import sys, os
+sys.path.insert(0, os.path.abspath('..'))
+
 import cmtools
 import random
 
