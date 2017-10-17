@@ -1,11 +1,13 @@
 from threading import Thread
-from msvcrt import getch
 from os import system
+import platform
 import cmtools
-import colorama
 import time
 import shutil
 import sys
+
+if(platform.system() == 'Windows'):
+    from msvcrt import getch
 
 class Window(object):
     def __init__(self, width, height):
@@ -18,14 +20,17 @@ class Window(object):
         self.t = Timer()
 
         #Prepare terminal by resizing and clearing.
-        system('mode con:cols=%d lines=%d'%(self.width+1,self.height))
-        system('cls')
-        colorama.init()
+        if platform.system() == 'Windows':
+            system('mode con:cols=%d lines=%d'%(self.width+1,self.height))
+            system('cls')
 
-        #Start new thread that listens for keypresses.
-        keyRead = Thread(target = self.getKeypress)
-        keyRead.daemon = True
-        keyRead.start()
+            #Start new thread that listens for keypresses.
+            keyRead = Thread(target = self.getKeypress)
+            keyRead.daemon = True
+            keyRead.start()
+        elif platform.system() == 'Linux':
+            system('clear')
+            print("\033[8;%d;%dt" % (self.height+1,self.width))
 
         #Create a 2D array scaled to terminal's lines and columns.
         self.rect = [[' ' for i in range(self.width)]
@@ -41,7 +46,8 @@ class Window(object):
                 if self.rect[line][char] != self.rect_buffer[line][char]:
                     print(pos(line, char), end='')
                     print(self.rect_buffer[line][char],end='')
-        print(pos(self.height-1,self.width-1),end='')
+                    #system("paplay /usr/share/sounds/freedesktop/stereo/bell.oga")
+        print(pos(self.height-1,self.width-1),end='', flush=True)
 
         self.rect=self.rect_buffer
 

@@ -11,8 +11,8 @@ class Tree(object):
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.charset = [' ','T','&']
-        self.display = self.charset[0]
+        self.charset = {'empty':' ','alive':'T','ablaze':'&'}
+        self.display = self.charset['empty']
         self.display_buffer = self.display
         self.neighbors = []
 
@@ -23,25 +23,28 @@ class Tree(object):
 
     def tick(self,rate):
         self.display_buffer = self.display
-        self.chanceToBloom = 0.00001
+        self.bloomChance = 0.00001
+        self.igniteChance = 0.00001
 
-        if self.display == self.charset[1]:
-            self.chanceToBloom+=0.00002
-        if self.display == self.charset[2]:
-            self.chanceToBloom = 1
         for neighbor in self.neighbors:
-            if neighbor.display_buffer == self.charset[2] and self.display == self.charset[1]:
-                self.chanceToBloom = 1
-            elif neighbor.display_buffer == self.charset[1] and self.display == self.charset[0]:
-                self.chanceToBloom += 0.0006
-        self.chanceToBloom = self.chanceToBloom*(rate/60)*1 #chance is adjusted to corrospond with how fast game updates
+            if neighbor.display_buffer == self.charset['ablaze']:
+                self.igniteChance = 1
+            elif neighbor.display_buffer == self.charset['alive']:
+                self.bloomChance += 0.0006
+        self.bloomChance = self.bloomChance*(rate/60) #chance is adjusted to corrospond with how fast game updates
 
-        if random.random() <= self.chanceToBloom:
-            self.display = self.charset[(self.charset.index(self.display)+1)%3]
+        if self.display == self.charset['ablaze']:
+            self.display = self.charset['empty']
+
+        elif random.random() <= self.bloomChance and self.display == self.charset['empty']:
+            self.display = self.charset['alive']
+
+        elif random.random() <= self.igniteChance and self.display == self.charset['alive']:
+            self.display = self.charset['ablaze']
 
 def main():
     #init
-    (width, height) = (72,27)
+    (width, height) = (72,27)#72,27
     screen = cmtools.Window(width, height)
     rate = 60
 
